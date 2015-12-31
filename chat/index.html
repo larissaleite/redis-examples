@@ -1,0 +1,134 @@
+<html>
+<head>
+    <title>Real time chat with Socket and Redis in NodeJS</title>
+
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css"> 
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.7/socket.io.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
+</head>
+
+<style type="text/css">
+    body {
+        margin-top: 4%;
+    }
+
+    #username {
+        text-align: center;
+    }
+
+    #chat-helper {
+        font-size: 12px;
+    }
+
+    .timestamp {
+        font-size: 11px;
+        color: #e8e8e8;
+    }
+
+    .username, .content {
+        display: inline;
+    }
+</style>
+
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-2"></div>
+            <div class="col-md-8">
+                <div id="username">
+                    <h4 style="">Redis and NodeJS real-time chat</h4>
+                    <br/>
+                    <input type="text" class="form-control" name="usernameTxt" placeholder="Username" /> 
+                    <br/>
+                    <button class="btn btn-primary form-control" id="enter-chat">Enter</button>
+                </div>
+
+                <div id="chat" style="display:none;">
+                    <div id="content"></div>
+                    <div id="sendChat" class="row">
+                        <div class="col-md-12">
+                            <textarea cols="15" rows="2" id="chat-input" name="chatTxt" class="form-control"></textarea>
+                            <p id="chat-helper">Press enter to send</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2"></div>
+        </div> <!-- .row -->
+    </div> <!-- .container -->
+
+<script>    
+    $(document).ready(function() {
+        var socket = io();
+        var content = $('#content');
+ 
+        var username = "anonymous";
+        
+        socket.on('connect', function() {
+            console.log("Connected");
+        });
+ 
+        socket.on('message', function(message) {
+            message = JSON.parse(message)
+            
+            if (message.content != "joined the chat") {
+                content.append("<div class='username'>"+message.username + ": </div><div class='content'>" + message.content + "</div><div class='timestamp'>" + message.timestamp + "</div>");
+            } else {
+                content.append("<div class='username'>"+message.username + " </div><div class='content'>" + message.content + "</div><div class='timestamp'>" + message.timestamp + "</div>");
+            }
+            //add disconnect message
+        });
+ 
+        socket.on('disconnect', function() {
+            console.log('Disconnected');
+            content.append("<b>Disconnected!</b>");
+        });
+
+        
+        $('#enter-chat').click(function(){
+            if($('input[name=usernameTxt]').val() != ""){
+                username = $('input[name=usernameTxt]').val();
+                var user = {
+                    username: username
+                }
+                socket.emit("join", user);
+            }
+            $('#username').slideUp("slow",function(){
+                $('#chat').slideDown("slow");
+
+                $('#chat').css("padding", "4%");
+                $('#chat').css("border", "1px solid #ddd");
+                
+                $('#content').css("padding", "3%");
+                $('#content').css("border", "1px solid #eee");
+                $('#content').css("margin-bottom", "4%");
+                $('#content').css("margin-top", "4%");
+                $('#content').css("min-height", "60%");
+            });
+        });
+
+        $('#chat-input').keydown(function(event) {
+            if (event.keyCode == 13) {
+                var message = { 
+                    type:'chat', 
+                    username: username,
+                    content: $("#chat-input").val() 
+                }
+                socket.json.send(message);
+                $("#chat-input").val("");
+                return false;
+             }
+        }).focus(function() {
+            if(this.value == "Write your message here...") {
+                 this.value = "";
+            }
+        }).blur(function() {
+            if(this.value==""){
+                 this.value = "Write your message here...";
+            }
+        });
+    });
+</script>
+</body>
+</html>
